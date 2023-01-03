@@ -4,6 +4,7 @@ import os
 import matplotlib.pyplot as plt 
 import python_speech_features
 from sklearn.model_selection import train_test_split
+import numpy as np 
 
 DATASET_PATH = "B:\Datasets\speech_commands_v0.01"
 CLASS_NAME = "stop"
@@ -22,6 +23,18 @@ def create_lfbe_feature(file_name):
 def create_train_test_split(X,y):
     X_train, X_test, y_train, y_test = train_test_split(X,y, random_state=42, shuffle=True)
     return X_train, X_test, y_train, y_test
+
+def load_features(file_name = "wakeword_features.npz"):
+    """
+    For loading the npz features file.
+    """
+    features = np.load(file_name, allow_pickle=True)
+    X_train = features['X_train'] 
+    y_train = features['y_train']
+    X_test = features['X_test'] 
+    y_test = features['y_test']
+    return X_train, y_train, X_test, y_test
+
 
 def Wave2Spectogram():
     file_name = os.path.join(DATASET_PATH, CLASS_NAME , "0bd689d7_nohash_2.wav")
