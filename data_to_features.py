@@ -39,15 +39,3 @@ class Data2Features:
                 self.features.append((lfbe_feature, self.target_label))
 
 
-DATASET_PATH = "B:\Datasets\speech_commands_v0.01"
-TARGET_CLASS_NAME = "stop"
-#NON_TARGET_CLASS_NAME = ["seven"]
-
-data2features = Data2Features(target_class=TARGET_CLASS_NAME, 
-                                data_path=DATASET_PATH)
-X_train, X_test, y_train, y_test = data2features.create_features()
-print(X_train.shape, y_train.shape)
-np.savez("wakeword_features", X_train = X_train, 
-                            X_test = X_test,
-                            y_train = y_train,
-                            y_test = y_test)
