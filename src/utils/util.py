@@ -8,7 +8,7 @@ from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler 
 from imblearn.pipeline import Pipeline 
 from collections import Counter
-
+import pandas as pd
 DATASET_PATH = "B:\Datasets\speech_commands_v0.01"
 CLASS_NAME = "stop"
 
@@ -21,7 +21,7 @@ def create_lfbe_feature(file_name):
                                                         winstep=0.01,
                                                         nfilt=64,
                                                         nfft=551)
-    print(f"lfbe features:{lfbe_feature.shape}")
+    #print(f"lfbe features:{lfbe_feature.shape}")
     return lfbe_feature[:76][:][:]
 
 def create_train_test_split(X,y):
@@ -38,16 +38,36 @@ def load_features(file_name = "wakeword_features.npz"):
     X_test = features['X_test'] 
     y_test = features['y_test']
     return X_train, y_train, X_test, y_test
-
-def make_balanced_class(features):
-    print(f"Class Distribution before Sampling: {Counter(features[:,1])}")
-    over = SMOTE(sampling_strategy=0.1) 
-    under = RandomUnderSampler(sampling_strategy=0.5) 
-    steps = [('o', over),('u', under)]
-    pipeline = Pipeline(steps=steps) 
-    X, y = pipeline.fit_resample(features[:,0], features[:,1]) 
-    print(f"Class Distribution after Sampling: {Counter(y)}")
-    return X, y
+def expand_cols(da,col_list):
+    for C in col_list:
+        ix = [C+str(i) for i in range(len(da[C][0]))]
+        da[ix] = pd.DataFrame(data[C].tolist(),columns = ix)
+    
+    da = da.drop(col_list,axis=1)
+    return da
+def make_balanced_class(X_train, y_train):
+    print(f"Class Distribution before Sampling: {Counter(y_train)}")
+    sm = SMOTE(random_state=42)
+    #over = SMOTE(sampling_strategy=0.9) 
+    #under = RandomUnderSampler(sampling_strategy=0.9) 
+    #steps = [('o', over),('u', under)]
+    #pipeline = Pipeline(steps=steps) 
+    
+    #X = features[:,0]
+    #y = features[:,1]
+    #X = X.astype('float32')
+    #X = np.asarray(X, dtype=object)
+    #y = y.astype('int')
+    #y = np.asarray(y, dtype=np.int32)
+    #print(X[0], y.shape)
+    train_rows=len(X_train)
+    X_smote = X_train.reshape(train_rows, -1)
+    print(X_smote.shape)
+    #X_train_resample, y_train_resample = pipeline.fit_resample(X_smote, y_train) 
+    X_train_resample, y_train_resample = sm.fit_resample(X_smote, y_train)
+    print(f"Class Distribution after Sampling: {Counter(y_train_resample)}")
+    X_train_resample = X_train_resample.reshape(-1, 76,64)
+    return X_train_resample, y_train_resample
 
 def Wave2Spectogram():
     file_name = os.path.join(DATASET_PATH, CLASS_NAME , "0bd689d7_nohash_2.wav")
@@ -66,4 +86,3 @@ def Wave2Spectogram():
     # fig.savefig("spec.png", bbox_inches="tight", pad_inches=0)
     # plt.close(fig)
     #del sample_rate, ax, fig, samples
-Wave2Spectogram()

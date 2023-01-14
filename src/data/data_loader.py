@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import sys 
+sys.path.append("..")
 from utils.util import *
 from torch.utils.data import DataLoader
 BATCH_SIZE = 32
