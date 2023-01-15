@@ -21,7 +21,6 @@ def test(model_path= "WakeWordDetection.pth", wave_file = "test.wav"):
 
     features = torch.unsqueeze(features, dim=0)
     features = torch.unsqueeze(features, dim=0)
-    print(features.shape)
     features = features.permute(0,1,3,2)
     features = features.to(DEVICE) 
     prediction = model(features.float())
