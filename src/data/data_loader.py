@@ -13,7 +13,7 @@ def torch_dataloader(X_train, y_train, X_test, y_test):
     test_dataloader = DataLoader(list(zip(X_test, y_test)), batch_size= BATCH_SIZE, shuffle=False)
 
     print(f"Length of train dataloader: {len(train_dataloader)} batches of {BATCH_SIZE}")
-    print(f"Length of train dataloader: {len(test_dataloader)} batches of {BATCH_SIZE}")
+    print(f"Length of validation dataloader: {len(test_dataloader)} batches of {BATCH_SIZE}")
 
     return train_dataloader, test_dataloader
 
