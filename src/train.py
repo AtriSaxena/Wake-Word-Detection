@@ -18,7 +18,7 @@ FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]
 
 
-def train(X_train, y_train, X_test, y_test, EPOCHS, BATCH_SIZE, DEVICE, seed, OPTIMIZER, exp_name):
+def train(X_train, y_train, X_test, y_test, EPOCHS, BATCH_SIZE, DEVICE, seed, OPTIMIZER, exp_name, visualization_class):
     torch.manual_seed(seed) 
 
     #Loading model 
@@ -35,12 +35,21 @@ def train(X_train, y_train, X_test, y_test, EPOCHS, BATCH_SIZE, DEVICE, seed, OP
     
     #Load Evaluation object
     evaluate = WakeWordEval(DEVICE)
-    
+    all_train_loss = [] 
+    all_val_loss = []
+    all_train_metrics = {'train_accuracy':[], 
+                         'train_precision': [],
+                         'train_recall': [],
+                         'train_f1score': []}
+    all_val_metrics ={'val_accuracy':[], 
+                         'val_precision': [],
+                         'val_recall': [],
+                         'val_f1score': []}
     for epoch in tqdm(range(EPOCHS)): 
         print(f"\nEpoch: {epoch}\n")
 
         # Training 
-        train_loss = 0
+        train_loss, train_accuracy, train_precision, train_recall, train_f1score = 0, 0, 0, 0, 0 
         # Add a loop to loop training through batches 
         for batch, (X, y) in enumerate(train_dataloader):
             model.train() 
@@ -56,6 +65,12 @@ def train(X_train, y_train, X_test, y_test, EPOCHS, BATCH_SIZE, DEVICE, seed, OP
             loss = loss_fn(y_pred.squeeze(dim=1), y.float()) 
             train_loss += loss 
 
+            accuracy, precision, recall, f1score =  evaluate.eval(y_pred.squeeze(dim=1), y)
+            train_accuracy += accuracy 
+            train_precision += precision 
+            train_recall += recall 
+            train_f1score += f1score 
+            
             # 3. Optimizer zero grad 
             optimizer.zero_grad()
 
@@ -68,6 +83,10 @@ def train(X_train, y_train, X_test, y_test, EPOCHS, BATCH_SIZE, DEVICE, seed, OP
         # Divide total train loss by length of train loader (average loss per batch per epoch) 
 
         train_loss /= len(train_dataloader)
+        train_accuracy /= len(train_dataloader)
+        train_precision /= len(train_dataloader)
+        train_recall /= len(train_dataloader)
+        train_f1score /= len(train_dataloader) 
 
         ### Testing 
         # Setup variable for accumulatively adding up loss and accuracy 
@@ -98,9 +117,24 @@ def train(X_train, y_train, X_test, y_test, EPOCHS, BATCH_SIZE, DEVICE, seed, OP
             test_precision /= len(test_dataloader)
             test_recall /= len(test_dataloader)
             test_f1score /= len(test_dataloader) 
+            
+            #Record loss and metrics 
+        print(train_accuracy, type(train_accuracy))
+        all_train_loss.append(train_loss.cpu().detach().numpy().flat[0])
+        all_val_loss.append(test_loss.cpu().detach().numpy().flat[0]) 
+        all_train_metrics['train_accuracy'].append(train_accuracy.cpu().detach().numpy().flat[0])
+        all_val_metrics['val_accuracy'].append(test_accuracy.cpu().detach().numpy().flat[0])
+        all_train_metrics['train_precision'].append(train_precision.cpu().detach().numpy().flat[0])
+        all_val_metrics['val_precision'].append(test_precision.cpu().detach().numpy().flat[0])
+        all_train_metrics['train_recall'].append(train_recall.cpu().detach().numpy().flat[0])
+        all_val_metrics['val_recall'].append(test_recall.cpu().detach().numpy().flat[0])
+        all_train_metrics['train_f1score'].append(train_f1score.cpu().detach().numpy().flat[0])
+        all_val_metrics['val_f1score'].append(test_f1score.cpu().detach().numpy().flat[0])
+        
+        
 
         print(f"\n Train Loss: {train_loss:.5f} | Test loss: {test_loss:.5f} Test acc: {test_accuracy:.5f}, Precision: {test_precision:.5f}, Recall:{test_recall:.5f}, f1score:{test_f1score:.5f}\n")
-
+    visualization_class.visualize_training_metrics(all_train_loss, all_val_loss, all_train_metrics, all_val_metrics)
     model_path = ROOT / "models" / exp_name
     if not(os.path.exists(model_path)):
         os.mkdir(model_path)
@@ -139,7 +173,7 @@ def main(arg_out):
     print(f"No of Non-Wakeword class data points:{(y_train==0).sum()}")
     print(f"No of Wakeword class data points: {(y_train==1).sum()}")
     
-    visualization_class = VisualizeData(exp_name=ROOT / "reports" / arg_out.name)
+    visualization_class = VisualizeData(exp_name=ROOT / "reports" / arg_out.name, epochs=arg_out.epochs)
     visualization_class.visualize_train_data(X_train = X_train, y_train = y_train)
     
 
@@ -149,7 +183,8 @@ def main(arg_out):
                             DEVICE= arg_out.device,
                             seed = arg_out.seed,
                             OPTIMIZER = arg_out.optimizer,
-                            exp_name=arg_out.name)
+                            exp_name=arg_out.name,
+                            visualization_class = visualization_class)
 
 
 if __name__ == "__main__": 
