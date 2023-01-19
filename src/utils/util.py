@@ -22,7 +22,7 @@ def create_lfbe_feature(file_name):
     return lfbe_feature[:76][:][:]
 
 def create_train_test_split(X,y):
-    X_train, X_test, y_train, y_test = train_test_split(X,y, random_state=42, shuffle=True)
+    X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2, random_state=42, shuffle=True)
     return X_train, X_test, y_train, y_test
 
 def load_features(file_name = "wakeword_features.npz"):
@@ -38,9 +38,9 @@ def load_features(file_name = "wakeword_features.npz"):
 
 def make_balanced_class(X_train, y_train):
     print(f"Class Distribution before Sampling: {Counter(y_train)}")
-
-    over = SMOTE(sampling_strategy={1:3000}) 
-    under = RandomUnderSampler(sampling_strategy={0:3000}) 
+    sampling_length = Counter(y_train)[1] + 2000
+    over = SMOTE(sampling_strategy={1:sampling_length}) 
+    under = RandomUnderSampler(sampling_strategy={0:sampling_length}) 
     steps = [('u', under),('o', over)]
     pipeline = Pipeline(steps=steps) 
 

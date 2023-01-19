@@ -16,9 +16,9 @@ class Data2Features:
         self.classes = next(os.walk(self.data_path))[1]
         self.classes.remove("_background_noise_") #os.listdir(self.data_path).remove("_background_noise_")
         print(self.classes)
-        self.non_target_class = ['seven','six']  #self.classes #
+        self.non_target_class = self.classes #['seven','six']  # 
         self.label = []
-        #self.non_target_class.remove(self.target_class) #['seven'] 
+        self.non_target_class.remove(self.target_class) #['seven'] 
         print(f"Following Classes are present:{self.classes}")
     
     def create_features(self):
