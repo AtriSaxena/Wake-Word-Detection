@@ -14,6 +14,8 @@ from data.data_to_features import Data2Features
 from utils.util import *
 from eval import WakeWordEval 
 from visualization.visualisation import VisualizeData
+import mlflow.pytorch
+import mlflow
 FILE = Path(__file__).resolve() 
 ROOT = FILE.parents[1]
 
@@ -24,6 +26,7 @@ def train(X_train, y_train, X_test, y_test, EPOCHS, BATCH_SIZE, DEVICE, seed, OP
     #Loading model 
     model = WakeWordModel().to(device=DEVICE) 
 
+    
     # SETUP optimizer
     if OPTIMIZER == "Adam":
         optimizer = torch.optim.Adam(params=model.parameters())
@@ -87,6 +90,12 @@ def train(X_train, y_train, X_test, y_test, EPOCHS, BATCH_SIZE, DEVICE, seed, OP
         train_precision /= len(train_dataloader)
         train_recall /= len(train_dataloader)
         train_f1score /= len(train_dataloader) 
+        
+        log_scalar('train_loss', train_loss, epoch)
+        log_scalar('train_accuracy', train_accuracy, epoch)
+        log_scalar('train_precision', train_precision, epoch)
+        log_scalar('train_recall', train_recall, epoch)
+        log_scalar('train_f1score', train_f1score, epoch)
 
         ### Testing 
         # Setup variable for accumulatively adding up loss and accuracy 
@@ -118,7 +127,15 @@ def train(X_train, y_train, X_test, y_test, EPOCHS, BATCH_SIZE, DEVICE, seed, OP
             test_recall /= len(test_dataloader)
             test_f1score /= len(test_dataloader) 
             
-            #Record loss and metrics 
+        #Mlflow Record
+        log_scalar('test_loss', test_loss, epoch)
+        log_scalar('test_accuracy', test_accuracy, epoch)
+        log_scalar('test_precision', test_precision, epoch)
+        log_scalar('test_recall', test_recall, epoch)
+        log_scalar('test_f1score', test_f1score, epoch)
+        
+        
+        #Record loss and metrics 
         print(train_accuracy, type(train_accuracy))
         all_train_loss.append(train_loss.cpu().detach().numpy().flat[0])
         all_val_loss.append(test_loss.cpu().detach().numpy().flat[0]) 
@@ -138,7 +155,10 @@ def train(X_train, y_train, X_test, y_test, EPOCHS, BATCH_SIZE, DEVICE, seed, OP
     model_path = ROOT / "models" / exp_name
     if not(os.path.exists(model_path)):
         os.mkdir(model_path)
-    torch.save(model.state_dict(), model_path / "WakeWordDetection.pth")
+    state_dict = model.state_dict()
+    torch.save(state_dict, model_path / "WakeWordDetection.pth")
+    mlflow.pytorch.log_state_dict(state_dict, artifact_path="model")
+    mlflow.pytorch.log_model(model, 'model')
 
 
 def arg_parse():
@@ -154,6 +174,9 @@ def arg_parse():
     parser.add_argument('--target_class', type=str, default='stop', help='Target class for wake word')
 
     return parser.parse_args()
+
+def log_scalar(name, value, step): 
+    mlflow.log_metric(name, value, step=step)
 
 def main(arg_out):
     DATASET_PATH = arg_out.dataset
@@ -176,8 +199,13 @@ def main(arg_out):
     visualization_class = VisualizeData(exp_name=ROOT / "reports" / arg_out.name, epochs=arg_out.epochs)
     visualization_class.visualize_train_data(X_train = X_train, y_train = y_train)
     
-
-    train(X_train, y_train, X_test, y_test, 
+    # Train the model
+    with mlflow.start_run() as run:
+        
+        for key, value in vars(arg_out).items():
+            mlflow.log_param(key, value)
+        
+        train(X_train, y_train, X_test, y_test, 
                             EPOCHS=arg_out.epochs,
                             BATCH_SIZE= arg_out.batch_size, 
                             DEVICE= arg_out.device,
